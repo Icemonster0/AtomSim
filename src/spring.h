@@ -18,7 +18,8 @@ class Spring {
             float xdiff = atom_a->pos.x - atom_b->pos.x;
             float ydiff = atom_a->pos.y - atom_b->pos.y;
             float zdiff = atom_a->pos.z - atom_b->pos.z;
-            std::cout << xdiff << " " << ydiff << " " << zdiff << " " << std::endl;
+            // std::cout << xdiff << " " << ydiff << " " << zdiff << " " << std::endl;
+            // std::cout << std::endl << "atom_a->pos.x " << atom_a->pos.x << std::endl;
             float d = sqrtf(xdiff*xdiff + ydiff*ydiff);
             float l = sqrtf(d*d + zdiff*zdiff);
             return l;

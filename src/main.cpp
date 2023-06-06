@@ -73,17 +73,17 @@ void generate_trimesh(int width, int depth, int height) {
 
 
 void update_position(float delta_t) {
-    for(auto atom : atom_list) {
+    for(auto &atom : atom_list) {
         atom.apply_velocity(delta_t);
     }
 }
 
 
 void update_velocity(float delta_t) {
-    for(auto spring : spring_list) {
+    for(auto &spring : spring_list) {
         spring.apply_force(delta_t);
     }
-    for(auto atom : atom_list) {
+    for(auto &atom : atom_list) {
         atom.apply_gravity(delta_t);
     }
 }

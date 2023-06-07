@@ -2,6 +2,7 @@
 
 using namespace std;
 
+
 vector<Atom> atom_list;
 vector<Spring> spring_list;
 
@@ -13,6 +14,7 @@ void generate_atoms() {
             spring_list.emplace_back(&atom_list[i], &atom_list[i-1], spring_constant);
         }
     }
+    atom_list[0].fix();
 }
 
 
@@ -27,8 +29,7 @@ void generate_trimesh(int width, int depth, int height) {
             for(int y = 0; y < depth; y++) {
                 grid[x][y][z] = &atom_list.emplace_back(vec3(x, y, z*layer_height), atom_mass, false);
                 grid[x][y][z+1] = &atom_list.emplace_back(vec3(x+0.5, y+0.5, (z+1)*layer_height), atom_mass, false);
-                // cout << grid[x][y][z]->pos.x << endl;
-                if(!z) grid[x][y][z]->fix();
+                // if(z == 0) grid[x][y][z]->fix();
             }
         }
     }
@@ -37,9 +38,6 @@ void generate_trimesh(int width, int depth, int height) {
     for(int z = 0; z < height; z++) {
         for(int x = 0; x < width; x++) {
             for(int y = 0; y < depth; y++) {
-                // cout << x << " " << grid[x][y][z]->pos.x << "  ";
-                // cout << y << " " << grid[x][y][z]->pos.y << "  ";
-                // cout << z << " " << grid[x][y][z]->pos.z << endl;
                 bool canx = x < width-1;
                 bool cany = y < depth-1;
 
@@ -72,58 +70,31 @@ void generate_trimesh(int width, int depth, int height) {
 }
 
 
-void update_position(float delta_t) {
-    for(auto &atom : atom_list) {
-        atom.apply_velocity(delta_t);
-    }
-}
+void initial_condition() {
+    generate_trimesh(10, 10, 10);
+    atom_list[10].vel.x -= 50;
+    atom_list[10].vel.y += 20;
+    atom_list[10].vel.z += 30;
 
-
-void update_velocity(float delta_t) {
-    for(auto &spring : spring_list) {
-        spring.apply_force(delta_t);
-    }
-    for(auto &atom : atom_list) {
-        atom.apply_gravity(delta_t);
-    }
-}
-
-
-void sim_step(float delta_t) {
-    update_position(delta_t);
-    update_velocity(delta_t);
-    cout << "vel z: " << atom_list.at(200).vel.z << endl;
-}
-
-
-void start_sim() {
-    float delta_t = sqrtf(spring_constant / atom_mass);
-    delta_t = 1.0f;
-
-    // first step
-    update_velocity(delta_t / 2);
-
-    for(int t = 0; t < steps; t++) {
-        sim_step(delta_t);
-    }
+    // generate_atoms();
+    // atom_list[9].vel.x += 3;
 }
 
 
 int main() {
 
-    // generate_atoms();
-    generate_trimesh(10, 10, 10);
+    initial_condition();
 
     start_sim();
 
-    for(auto atom : atom_list) {
-        cout << "This atom's mass is " << atom.mass << ", it is at the coordinates " << endl
-            << atom.pos.x << endl
-            << atom.pos.y << endl
-            << atom.pos.z << endl;
-        cout << atom.fixed << endl;
-    }
-    cout << "There are " << spring_list.size() << " springs and " << atom_list.size() << " atoms." << endl;
+    // for(auto atom : atom_list) {
+    //     cout << "This atom's mass is " << atom.mass << ", it is at the coordinates " << endl
+    //         << atom.pos.x << endl
+    //         << atom.pos.y << endl
+    //         << atom.pos.z << endl;
+    //     cout << atom.fixed << endl;
+    // }
+    // cout << "There are " << spring_list.size() << " springs and " << atom_list.size() << " atoms." << endl;
     // for(auto spring : spring_list) {
     //     cout << ": " << spring.calculate_length() << endl;
     //     // cout << "spring: " << spring.atom_a->pos.z << endl;

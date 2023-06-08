@@ -7,6 +7,7 @@
 #include <string>
 #include <stdlib.h>
 #include <sstream>
+#include <algorithm>
 
 // Util
 #include "util.h"
@@ -17,10 +18,10 @@
 // Objects
 #include "spring.h"
 #include "atom.h"
+#include "mesh.h"
 
 // Variables
-extern std::vector<Atom> atom_list;
-extern std::vector<Spring> spring_list;
+extern Mesh mesh;
 
 // Functions
 void start_sim();

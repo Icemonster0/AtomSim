@@ -2,6 +2,7 @@
 
 #include "util.h"
 
+
 class Atom {
     public:
         vec3 pos;
@@ -32,5 +33,11 @@ class Atom {
 
         float velocity_sqr() {
             return vel.x*vel.x + vel.y*vel.y + vel.z*vel.z;
+        }
+
+        void collide_with_floor() {
+            if(pos.z <= 0) {
+                vel.z = abs(vel.z);
+            }
         }
 };

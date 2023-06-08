@@ -2,7 +2,7 @@
 
 
 void update_position(float delta_t) {
-    for(auto &atom : atom_list) {
+    for(auto &atom : mesh.atom_list) {
         if(!atom.fixed)
             atom.apply_velocity(delta_t);
     }
@@ -10,11 +10,12 @@ void update_position(float delta_t) {
 
 
 void update_velocity(float delta_t) {
-    for(auto &spring : spring_list) {
+    for(auto &spring : mesh.spring_list) {
         spring.apply_force(delta_t);
     }
-    for(auto &atom : atom_list) {
+    for(auto &atom : mesh.atom_list) {
         atom.apply_gravity(delta_t);
+        if(floor_enable) atom.collide_with_floor();
     }
 }
 
@@ -22,7 +23,7 @@ void update_velocity(float delta_t) {
 float calculate_energy() {
     float energy = 0.0f;
 
-    for(auto &atom : atom_list) {
+    for(auto &atom : mesh.atom_list) {
         // Kinetic
         // float velocity = atom.velocity_length();
         energy += 0.5f * atom.mass * atom.velocity_sqr();
@@ -30,7 +31,7 @@ float calculate_energy() {
         // Potential (Gravity)
         energy += atom.mass * gravity * atom.pos.z;
     }
-    for(auto &spring : spring_list) {
+    for(auto &spring : mesh.spring_list) {
         // Potential (Springs)
         float l = spring.calculate_length();
         //  non-linear:
@@ -55,8 +56,9 @@ void sim_step(float delta_t) {
 void output(float time) {
     cout << time
         << " " << calculate_energy()
-        << " " << atom_list[555].vel.z
-        << " " << atom_list[867].vel.z << endl;
+        // << " " << atom_list[555].vel.z
+        // << " " << atom_list[867].vel.z
+        << endl;
 }
 
 
@@ -70,7 +72,9 @@ void start_sim() {
     for(int t = 0; t < steps; t++) {
         sim_step(delta_t);
         output(t * delta_t);
-        if(t % steps_per_frame == 0) {
+
+        // render
+        if(t % steps_per_frame == 0 && render_enable) {
             render(t / steps_per_frame);
         }
     }

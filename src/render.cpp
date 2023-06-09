@@ -45,11 +45,16 @@ void convert_to_png(int frame_i) {
 
     stringstream command_1;
     command_1 << "convert " << output_path << frame_i << ".pnm" << " " << output_path << frame_i << ".png";
-    system(command_1.str().c_str());
+    if(system(command_1.str().c_str())) {
+        cout << "Failed to convert. Read the README for a possible solution." << endl;
+        exit(1);
+    }
 
     stringstream command_2;
     command_2 << "rm " << output_path << frame_i << ".pnm";
-    system(command_2.str().c_str());
+    if(system(command_2.str().c_str())) {
+        cout << "Failed to remove pnm." << endl;
+    }
 
     // --^
 }

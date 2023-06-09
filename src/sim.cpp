@@ -16,6 +16,7 @@ void update_velocity(float delta_t) {
     for(auto &atom : mesh.atom_list) {
         atom.apply_gravity(delta_t);
         if(floor_enable) atom.collide_with_floor();
+        atom.dampen(delta_t);
     }
 }
 
@@ -69,13 +70,16 @@ void start_sim() {
     // first step
     update_velocity(delta_t / 2);
 
-    for(int t = 0; t < steps; t++) {
+    for(int t = 0; t < sim_length / delta_t; t++) {
         sim_step(delta_t);
         output(t * delta_t);
 
         // render
+        int steps_per_frame = time_per_frame / delta_t;
         if(t % steps_per_frame == 0 && render_enable) {
             render(t / steps_per_frame);
         }
     }
+
+    if(save_cache) mesh.save_mesh_cache();
 }

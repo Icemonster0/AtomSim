@@ -27,6 +27,12 @@ class Atom {
             vel.z -= gravity * delta_t;
         }
 
+        void dampen(float delta_t) {
+            vel.x *= 1.0f - damping * delta_t;
+            vel.y *= 1.0f - damping * delta_t;
+            vel.z *= 1.0f - damping * delta_t;
+        }
+
         float velocity_length() {
             return sqrtf(vel.x*vel.x + vel.y*vel.y + vel.z*vel.z);
         }

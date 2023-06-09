@@ -3,7 +3,7 @@
 using namespace std;
 
 
-Mesh mesh = Mesh();
+Mesh mesh = Mesh(vec3(mesh_size.x, mesh_size.y, mesh_size.z));
 
 
 void generate_atoms() {
@@ -18,7 +18,6 @@ void generate_atoms() {
 
 
 void initial_condition() {
-    mesh.generate_trimesh(mesh_size.x, mesh_size.y, mesh_size.z);
     // atom_list[10].vel.x -= 50;
     // atom_list[10].vel.y += 20;
     // atom_list[10].vel.z += 30;

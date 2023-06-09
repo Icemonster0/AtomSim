@@ -9,8 +9,12 @@ class Mesh {
     public:
         std::vector<Atom> atom_list;
         std::vector<Spring> spring_list;
+        vec3 size;
 
-        Mesh() {
+        Mesh(vec3 p_size) : size(p_size) {
+            if(load_cache) load_mesh_size();
+            generate_trimesh((int)size.x, (int)size.y, (int)size.z);
+            if(load_cache) load_mesh_cache();
         }
 
         void spring_cleanup() {
@@ -90,7 +94,11 @@ class Mesh {
         }
 
         bool spring_in_sphere(Atom* atom_a, Atom* atom_b) {
-            return (atom_a != nullptr && atom_b != nullptr);
+            bool result;
+            if(sphere) result = (atom_a != nullptr && atom_b != nullptr);
+            else result = true;
+
+            return result;
         }
 
         void generate_trimesh(int width, int depth, int height) {
@@ -99,6 +107,7 @@ class Mesh {
             vec3 center = vec3(((float)width + 0.5) * 0.5f,
                                ((float)depth + 0.5) * 0.5f,
                                (float)height * layer_height * 0.5f);
+            bool even = (height % 2 == 0);
 
             atom_list.reserve(height*width*depth);
 
@@ -113,13 +122,18 @@ class Mesh {
                             grid[x][y][z] = &atom_list.emplace_back(bottom);
                         else
                             grid[x][y][z] = nullptr;
-                        if(sphere && atom_in_sphere(&top, center, layer_height) || !sphere)
-                            grid[x][y][z+1] = &atom_list.emplace_back(top);
-                        else
-                            grid[x][y][z+1] = nullptr;
+                        if(z <= height-2) {
+                            if(sphere && atom_in_sphere(&top, center, layer_height) || !sphere)
+                                grid[x][y][z+1] = &atom_list.emplace_back(top);
+                            else
+                                grid[x][y][z+1] = nullptr;
+                        }
 
                         if(z == 0 && fix_bottom) grid[x][y][z]->fix();
-                        if(z == height-2 && fix_top) grid[x][y][z+1]->fix();
+                        if(fix_top) {
+                            if(z == height-2) grid[x][y][z+1]->fix();
+                            if(z == height-1) grid[x][y][z]->fix();
+                        }
                     }
                 }
             }
@@ -171,4 +185,44 @@ class Mesh {
             transform(center);
         }
 
+        void save_mesh_cache() {
+            ofstream file;
+
+            file.open(cache_path_save);
+
+            file << mesh_size.x << " "
+                 << mesh_size.y << " "
+                 << mesh_size.z << " " << endl;
+
+            for(auto atom : atom_list) {
+                file << atom.pos.x << " " << atom.pos.y << " " << atom.pos.z << " "
+                     << atom.vel.x << " " << atom.vel.y << " " << atom.vel.z << " " << endl;
+            }
+
+            file.close();
+        }
+
+        void load_mesh_size() {
+            ifstream file;
+
+            file.open(cache_path_load);
+            file >> size.x >> size.y >> size.z;
+            file.close();
+        }
+
+        void load_mesh_cache() {
+            ifstream file;
+
+            file.open(cache_path_load);
+
+            float dump;
+            file >> dump >> dump >> dump;
+
+            for(auto &atom : atom_list) {
+                file >> atom.pos.x >> atom.pos.y >> atom.pos.z
+                     >> atom.vel.x >> atom.vel.y >> atom.vel.z;
+            }
+
+            file.close();
+        }
 };

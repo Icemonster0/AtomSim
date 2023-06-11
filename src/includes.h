@@ -15,7 +15,8 @@
 // Global Settings
 #include "settings.h"
 
-// Objects
+// Classes
+#include "tri.h"
 #include "spring.h"
 #include "atom.h"
 #include "mesh.h"

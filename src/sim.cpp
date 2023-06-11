@@ -2,6 +2,7 @@
 
 
 void update_position(float delta_t) {
+    #pragma omp parallel for schedule(static)
     for(auto &atom : mesh.atom_list) {
         if(!atom.fixed)
             atom.apply_velocity(delta_t);
@@ -10,9 +11,11 @@ void update_position(float delta_t) {
 
 
 void update_velocity(float delta_t) {
+    // #pragma omp parallel for schedule(static)
     for(auto &spring : mesh.spring_list) {
         spring.apply_force(delta_t);
     }
+    #pragma omp parallel for schedule(static)
     for(auto &atom : mesh.atom_list) {
         atom.apply_gravity(delta_t);
         if(floor_enable) atom.collide_with_floor();
@@ -48,6 +51,21 @@ float calculate_energy() {
 }
 
 
+vec3 center_of_mass() {
+    vec3 center;
+    float total_mass = 0.0f;
+
+    for(auto &atom : mesh.atom_list) {
+        center = center + atom.pos * atom.mass;
+        total_mass += atom.mass;
+    }
+
+    center = center / total_mass;
+
+    return center;
+}
+
+
 void sim_step(float delta_t) {
     update_position(delta_t);
     update_velocity(delta_t);
@@ -57,6 +75,7 @@ void sim_step(float delta_t) {
 void output(float time) {
     cout << time
         << " " << calculate_energy()
+        << " " << center_of_mass().z
         // << " " << atom_list[555].vel.z
         // << " " << atom_list[867].vel.z
         << endl;

@@ -9,10 +9,12 @@ class Mesh {
     public:
         std::vector<Atom> atom_list;
         std::vector<Spring> spring_list;
+        std::vector<tri> tri_list;
         vec3 size;
 
         Mesh(vec3 p_size) : size(p_size) {
             if(load_cache) load_mesh_size();
+            if(show_surface && flat_sides && (int)size.z % 2 == 0) size.z -= 1;
             generate_trimesh((int)size.x, (int)size.y, (int)size.z);
             if(load_cache) load_mesh_cache();
         }
@@ -101,13 +103,40 @@ class Mesh {
             return result;
         }
 
+        Atom* get_closest_atom(vec3 point) {
+            Atom* closest;
+            float dist = 1000000.0f;
+
+            for(Atom &atom : atom_list) {
+                float xdiff = point.x - atom.pos.x;
+                float ydiff = point.y - atom.pos.y;
+                float zdiff = point.z - atom.pos.z;
+
+                float l = sqrtf(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff);
+
+                if(l < dist) {
+                    dist = l;
+                    closest = &atom;
+                }
+            }
+
+            if(dist < 1.0f)
+                return closest;
+            else
+                return nullptr;
+        }
+
         void generate_trimesh(int width, int depth, int height) {
+            // I apologize for this monster function, it's just that c++ hates
+            // 3D arrays and I didn't want to have to deal with passing
+            // them to smaller functions.
+
             Atom* grid[width][depth][height];
             float layer_height = sqrt(0.5); // height of a tetrahedron with an edge length of 1.0
             vec3 center = vec3(((float)width + 0.5) * 0.5f,
                                ((float)depth + 0.5) * 0.5f,
                                (float)height * layer_height * 0.5f);
-            bool even = (height % 2 == 0);
+            // bool even_height = (height % 2 == 0);
 
             atom_list.reserve(height*width*depth);
 
@@ -119,14 +148,14 @@ class Mesh {
                         Atom top = Atom(vec3(x+0.5, y+0.5, (z+1)*layer_height), atom_mass, false);
 
                         if(sphere && atom_in_sphere(&bottom, center, layer_height) || !sphere)
-                            grid[x][y][z] = &atom_list.emplace_back(bottom);
+                        grid[x][y][z] = &atom_list.emplace_back(bottom);
                         else
-                            grid[x][y][z] = nullptr;
+                        grid[x][y][z] = nullptr;
                         if(z <= height-2) {
                             if(sphere && atom_in_sphere(&top, center, layer_height) || !sphere)
-                                grid[x][y][z+1] = &atom_list.emplace_back(top);
+                            grid[x][y][z+1] = &atom_list.emplace_back(top);
                             else
-                                grid[x][y][z+1] = nullptr;
+                            grid[x][y][z+1] = nullptr;
                         }
 
                         if(z == 0 && fix_bottom) grid[x][y][z]->fix();
@@ -146,37 +175,186 @@ class Mesh {
                         bool cany = y < depth-1;
 
                         if(canx && spring_in_sphere(grid[x][y][z], grid[x+1][y][z]))
-                            spring_list.emplace_back(grid[x][y][z], grid[x+1][y][z], spring_constant);
+                        spring_list.emplace_back(grid[x][y][z], grid[x+1][y][z], spring_constant);
                         if(cany && spring_in_sphere(grid[x][y][z], grid[x][y+1][z]))
-                            spring_list.emplace_back(grid[x][y][z], grid[x][y+1][z], spring_constant);
+                        spring_list.emplace_back(grid[x][y][z], grid[x][y+1][z], spring_constant);
                         if(z) {
                             if(z % 2) {
                                 if(spring_in_sphere(grid[x][y][z], grid[x][y][z-1]))
-                                    spring_list.emplace_back(grid[x][y][z], grid[x][y][z-1], spring_constant);
+                                spring_list.emplace_back(grid[x][y][z], grid[x][y][z-1], spring_constant);
 
                                 if(canx && spring_in_sphere(grid[x][y][z], grid[x+1][y][z-1]))
-                                    spring_list.emplace_back(grid[x][y][z], grid[x+1][y][z-1], spring_constant);
+                                spring_list.emplace_back(grid[x][y][z], grid[x+1][y][z-1], spring_constant);
 
                                 if(cany && spring_in_sphere(grid[x][y][z], grid[x][y+1][z-1]))
-                                    spring_list.emplace_back(grid[x][y][z], grid[x][y+1][z-1], spring_constant);
+                                spring_list.emplace_back(grid[x][y][z], grid[x][y+1][z-1], spring_constant);
 
                                 if(canx && cany && spring_in_sphere(grid[x][y][z], grid[x+1][y+1][z-1]))
-                                    spring_list.emplace_back(grid[x][y][z], grid[x+1][y+1][z-1], spring_constant);
+                                spring_list.emplace_back(grid[x][y][z], grid[x+1][y+1][z-1], spring_constant);
 
                             } else {
                                 if(spring_in_sphere(grid[x][y][z], grid[x][y][z-1]))
-                                    spring_list.emplace_back(grid[x][y][z], grid[x][y][z-1], spring_constant);
+                                spring_list.emplace_back(grid[x][y][z], grid[x][y][z-1], spring_constant);
 
                                 if(x && spring_in_sphere(grid[x][y][z], grid[x-1][y][z-1]))
-                                    spring_list.emplace_back(grid[x][y][z], grid[x-1][y][z-1], spring_constant);
+                                spring_list.emplace_back(grid[x][y][z], grid[x-1][y][z-1], spring_constant);
 
                                 if(y && spring_in_sphere(grid[x][y][z], grid[x][y-1][z-1]))
-                                    spring_list.emplace_back(grid[x][y][z], grid[x][y-1][z-1], spring_constant);
+                                spring_list.emplace_back(grid[x][y][z], grid[x][y-1][z-1], spring_constant);
 
                                 if(x * y && spring_in_sphere(grid[x][y][z], grid[x-1][y-1][z-1]))
-                                    spring_list.emplace_back(grid[x][y][z], grid[x-1][y-1][z-1], spring_constant);
+                                spring_list.emplace_back(grid[x][y][z], grid[x-1][y-1][z-1], spring_constant);
                             }
                         }
+                    }
+                }
+            }
+
+            // add tris
+            if(show_surface && !sphere) {
+                // top and bottom
+                for(int x = 0; x < width-1; x++) {
+                    for(int y = 0; y < depth-1; y++) {
+                        // bottom
+                        tri_list.emplace_back(grid[x][y][0], grid[x+1][y+1][0], grid[x][y+1][0]);
+                        tri_list.emplace_back(grid[x][y][0], grid[x+1][y][0], grid[x+1][y+1][0]);
+
+                        // top
+                        tri_list.emplace_back(grid[x][y][height-1], grid[x][y+1][height-1], grid[x+1][y+1][height-1]);
+                        tri_list.emplace_back(grid[x][y][height-1], grid[x+1][y+1][height-1], grid[x+1][y][height-1]);
+                    }
+                }
+
+                // sides
+                int z_step = flat_sides ? 2 : 1;
+
+                for(int z = 0; z < height-1; z += z_step) {
+                    for(int x = 0; x < width-1; x++) {
+                        // south
+                        tri_list.emplace_back(grid[x][0][z], grid[x][0][z+z_step], grid[x+1][0][z+z_step]);
+                        tri_list.emplace_back(grid[x][0][z], grid[x+1][0][z+z_step], grid[x+1][0][z]);
+
+                        // north
+                        tri_list.emplace_back(grid[x][depth-1][z], grid[x+1][depth-1][z+z_step], grid[x][depth-1][z+z_step]);
+                        tri_list.emplace_back(grid[x][depth-1][z], grid[x+1][depth-1][z], grid[x+1][depth-1][z+z_step]);
+                    }
+
+                    for(int y = 0; y < depth-1; y++) {
+                        // west
+                        tri_list.emplace_back(grid[0][y][z], grid[0][y+1][z+z_step], grid[0][y][z+z_step]);
+                        tri_list.emplace_back(grid[0][y][z], grid[0][y+1][z], grid[0][y+1][z+z_step]);
+
+                        // east
+                        tri_list.emplace_back(grid[width-1][y][z], grid[width-1][y][z+z_step], grid[width-1][y+1][z+z_step]);
+                        tri_list.emplace_back(grid[width-1][y][z], grid[width-1][y+1][z+z_step], grid[width-1][y+1][z]);
+                    }
+
+                    if(flat_sides && z == height-1) {
+                        z_step = 1;
+                    }
+                }
+            }
+            if(show_surface && sphere) {
+                // Create temporary wrapping atoms
+
+                std::vector<Atom> tmp_atoms;
+                Atom* tmp_grid[width][depth][height];
+
+                // top and bottom
+                for(int x = 0; x < width; x++) {
+                    for(int y = 0; y < depth; y++) {
+                        // bottom
+                        tmp_grid[x][y][0] = &tmp_atoms.emplace_back(vec3(x, y, 0), atom_mass, false);
+                        // top
+                        tmp_grid[x][y][height-1] = &tmp_atoms.emplace_back(vec3(x, y, height-1), atom_mass, false);
+                    }
+                }
+
+                //sides
+                for(int z = 0; z < height; z++) {
+                    for(int x = 0; x < width; x++) {
+                        // south
+                        tmp_grid[x][0][z] = &tmp_atoms.emplace_back(vec3(x, 0, z*layer_height), atom_mass, false);
+                        // north
+                        tmp_grid[x][depth-1][z] = &tmp_atoms.emplace_back(vec3(x, depth-1, z*layer_height), atom_mass, false);
+                    }
+
+                    for(int y = 0; y < depth; y++) {
+                        // west
+                        tmp_grid[0][y][z] = &tmp_atoms.emplace_back(vec3(0, y, z*layer_height), atom_mass, false);
+                        // east
+                        tmp_grid[width-1][y][z] = &tmp_atoms.emplace_back(vec3(width-1, y, z*layer_height), atom_mass, false);
+                    }
+                }
+
+                // Fill in wrapping with tris
+
+                // top and bottom
+                for(int x = 0; x < width-1; x++) {
+                    for(int y = 0; y < depth-1; y++) {
+                        // bottom
+                        tri_list.emplace_back(tmp_grid[x][y][0], tmp_grid[x+1][y+1][0], tmp_grid[x][y+1][0]);
+                        tri_list.emplace_back(tmp_grid[x][y][0], tmp_grid[x+1][y][0], tmp_grid[x+1][y+1][0]);
+
+                        // top
+                        tri_list.emplace_back(tmp_grid[x][y][height-1], tmp_grid[x][y+1][height-1], tmp_grid[x+1][y+1][height-1]);
+                        tri_list.emplace_back(tmp_grid[x][y][height-1], tmp_grid[x+1][y+1][height-1], tmp_grid[x+1][y][height-1]);
+                    }
+                }
+
+                // sides
+
+                for(int z = 0; z < height-1; z++) {
+                    for(int x = 0; x < width-1; x++) {
+                        // south
+                        tri_list.emplace_back(tmp_grid[x][0][z], tmp_grid[x][0][z+1], tmp_grid[x+1][0][z+1]);
+                        tri_list.emplace_back(tmp_grid[x][0][z], tmp_grid[x+1][0][z+1], tmp_grid[x+1][0][z]);
+
+                        // north
+                        tri_list.emplace_back(tmp_grid[x][depth-1][z], tmp_grid[x+1][depth-1][z+1], tmp_grid[x][depth-1][z+1]);
+                        tri_list.emplace_back(tmp_grid[x][depth-1][z], tmp_grid[x+1][depth-1][z], tmp_grid[x+1][depth-1][z+1]);
+                    }
+
+                    for(int y = 0; y < depth-1; y++) {
+                        // west
+                        tri_list.emplace_back(tmp_grid[0][y][z], tmp_grid[0][y+1][z+1], tmp_grid[0][y][z+1]);
+                        tri_list.emplace_back(tmp_grid[0][y][z], tmp_grid[0][y+1][z], tmp_grid[0][y+1][z+1]);
+
+                        // east
+                        tri_list.emplace_back(tmp_grid[width-1][y][z], tmp_grid[width-1][y][z+1], tmp_grid[width-1][y+1][z+1]);
+                        tri_list.emplace_back(tmp_grid[width-1][y][z], tmp_grid[width-1][y+1][z+1], tmp_grid[width-1][y+1][z]);
+                    }
+                }
+
+                // Shrink wrapping
+                int decrement = clamp(100.0f / max(max(mesh_size.x, mesh_size.y), mesh_size.z), 1.0f, 100.0f);
+
+                for(int per_cent = 100; per_cent >= 1; per_cent -= decrement) {
+                    for(auto &tri : tri_list) {
+                        Atom* atom_ptr = get_closest_atom(tri.a->pos * (per_cent * 0.01f));
+                        if(atom_ptr != nullptr && tri.a_tmp) {
+                            tri.a = atom_ptr;
+                            tri.a_tmp = false;
+                        }
+
+                        atom_ptr = get_closest_atom(tri.b->pos * (per_cent * 0.01f));
+                        if(atom_ptr != nullptr && tri.b_tmp) {
+                            tri.b = atom_ptr;
+                            tri.b_tmp = false;
+                        }
+
+                        atom_ptr = get_closest_atom(tri.c->pos * (per_cent * 0.01f));
+                        if(atom_ptr != nullptr && tri.c_tmp) {
+                            tri.c = atom_ptr;
+                            tri.c_tmp = false;
+                        }
+                    }
+                }
+
+                // Clean up tris
+                for(int i = 0; i < tri_list.size(); i++) {
+                    if(tri_list[i].a == tri_list[i].b || tri_list[i].b == tri_list[i].c || tri_list[i].c == tri_list[i].a) {
+                        tri_list.erase(tri_list.begin() + i);
                     }
                 }
             }
@@ -189,6 +367,10 @@ class Mesh {
             ofstream file;
 
             file.open(cache_path_save);
+            if(!file.is_open()) {
+                cout << "Failed to open file in  mesh.h: Mesh::save_mesh_cache" << endl;
+                exit(1);
+            }
 
             file << mesh_size.x << " "
                  << mesh_size.y << " "
@@ -206,6 +388,11 @@ class Mesh {
             ifstream file;
 
             file.open(cache_path_load);
+            if(!file.is_open()) {
+                cout << "Failed to open file in  mesh.h: Mesh::load_mesh_size" << endl;
+                exit(1);
+            }
+
             file >> size.x >> size.y >> size.z;
             file.close();
         }
@@ -214,6 +401,10 @@ class Mesh {
             ifstream file;
 
             file.open(cache_path_load);
+            if(!file.is_open()) {
+                cout << "Failed to open file in  mesh.h: Mesh::load_mesh_cache" << endl;
+                exit(1);
+            }
 
             float dump;
             file >> dump >> dump >> dump;

@@ -10,11 +10,12 @@ class Spring {
     public:
         Atom* atom_a;
         Atom* atom_b;
+        vec3 acceleration;
         float resting_length;
         float k;
 
         Spring(Atom* p_atom_a, Atom* p_atom_b, float pk) :
-            atom_a(p_atom_a), atom_b(p_atom_b), k(pk) {
+            atom_a(p_atom_a), atom_b(p_atom_b), k(pk), acceleration(vec3(0, 0, 0)) {
                 resting_length = calculate_length();
         }
 
@@ -54,15 +55,22 @@ class Spring {
             return vec3(xdiff * force_over_l, ydiff * force_over_l, zdiff * force_over_l);
         }
 
-        void apply_force(float delta_t) {
+        void calculate_acceleration(float delta_t) {
             vec3 force = calculate_force();
 
-            atom_a->vel.x -= force.x / atom_a->mass * delta_t;
-            atom_a->vel.y -= force.y / atom_a->mass * delta_t;
-            atom_a->vel.z -= force.z / atom_a->mass * delta_t;
+            acceleration = vec3(force.x / atom_a->mass * delta_t, force.y / atom_a->mass * delta_t, force.z / atom_a->mass * delta_t);
 
-            atom_b->vel.x += force.x / atom_b->mass * delta_t;
-            atom_b->vel.y += force.y / atom_b->mass * delta_t;
-            atom_b->vel.z += force.z / atom_b->mass * delta_t;
+            // atom_a->vel.x -= force.x / atom_a->mass * delta_t;
+            // atom_a->vel.y -= force.y / atom_a->mass * delta_t;
+            // atom_a->vel.z -= force.z / atom_a->mass * delta_t;
+            //
+            // atom_b->vel.x += force.x / atom_b->mass * delta_t;
+            // atom_b->vel.y += force.y / atom_b->mass * delta_t;
+            // atom_b->vel.z += force.z / atom_b->mass * delta_t;
+        }
+
+        void apply_acceleration() {
+            atom_a->vel = atom_a->vel - acceleration;
+            atom_b->vel = atom_b->vel + acceleration;
         }
 };

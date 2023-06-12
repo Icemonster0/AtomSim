@@ -9,15 +9,27 @@
     const float step_size = 0.01;
     const float spring_constant = 5000.0f;
     const float atom_mass = 1.0f;
-    const float gravity = 1.0f;
+    const float gravity = 0.0f;
     const float damping = 0;
-    const bool floor_enable = true;
+    const bool floor_enable = false;
 
     // Save and load cache
     const bool load_cache = false;
     const std::string cache_path_load = "cache/cache1"; // active if  load_cache = true
     const bool save_cache = false;
     const std::string cache_path_save = "cache/cache1"; // active if  save_cache = true
+
+    // Temperature
+    // Intended use: disable gravity, damping, fix_top, fix_bottom and sphere,
+    // enable rendering;
+    const bool temperature_sim = true;
+    const float starting_temp = 1.0f;
+    const int temp_height = 9;
+    const float temp_step = 0.01;
+    const float max_temperature = 1;
+    const std::string temp_output_file = "graphs/output1";
+    // All layers up to temp_height start with rand(0, starting_temp), the rest
+    // starts with 0; prints out the temperature distribution to output_path
 
 
 // INITIAL CONDITION -----------------------------------------------------------
@@ -42,12 +54,13 @@
     const bool render_enable = true;
     const std::string output_path = "output/";
     const bool output_png = true; // false: output pnm
+    const bool clean_output_directory = true;
     const int res_X = 800;
     const int res_Y = 600;
     const float scale = 30;
     const float offset_X = -10;
     const float offset_Y = -5;
-    const float time_per_frame = 0.1f;
+    const float time_per_frame = 0.001f;
 
     // Surface
     const bool show_surface = true;

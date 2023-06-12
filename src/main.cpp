@@ -17,6 +17,13 @@ void generate_atoms() {
 }
 
 
+void clean_dir() {
+    if(system(("rm " + output_path + "*").c_str())) {
+        cout << "Failed to clean output directory." << endl;
+    }
+}
+
+
 void initial_condition() {
     // atom_list[10].vel.x -= 50;
     // atom_list[10].vel.y += 20;
@@ -28,6 +35,11 @@ void initial_condition() {
 
 
 int main() {
+
+    srand(time(NULL));
+
+    if(clean_output_directory)
+        clean_dir();
 
     initial_condition();
 

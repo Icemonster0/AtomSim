@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <sstream>
 #include <algorithm>
+#include <time.h>
 
 // Util
 #include "util.h"

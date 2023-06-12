@@ -9,9 +9,9 @@
     const float step_size = 0.01;
     const float spring_constant = 5000.0f;
     const float atom_mass = 1.0f;
-    const float gravity = 0.0f;
+    const float gravity = 1.0f;
     const float damping = 0;
-    const bool floor_enable = false;
+    const bool floor_enable = true;
 
     // Save and load cache
     const bool load_cache = false;
@@ -22,7 +22,7 @@
     // Temperature
     // Intended use: disable gravity, damping, fix_top, fix_bottom and sphere,
     // enable rendering;
-    const bool temperature_sim = true;
+    const bool temperature_sim = false;
     const float starting_temp = 1.0f;
     const int temp_height = 9;
     const float temp_step = 0.01;
@@ -34,18 +34,18 @@
 
 // INITIAL CONDITION -----------------------------------------------------------
     // Mesh size
-    const vec3 mesh_size = vec3(10, 10, 10);
+    const vec3 mesh_size = vec3(20, 20, 20);
 
     // Modifiers
     const bool fix_top = false;
     const bool fix_bottom = false;
-    const bool sphere = false;
+    const bool sphere = true;
 
     // Transformations
     const vec3 mesh_twist = vec3(0, 0, 0);
     const float mesh_shear = 0.0f;
     const vec3 mesh_stretch = vec3(1, 1, 1);
-    const vec3 mesh_rotation = vec3(0.0, 0.0, 0.0);
+    const vec3 mesh_rotation = vec3(0.5, 0.5, 0.5);
     const vec3 mesh_offset = vec3(0, 0, 4);
 
 
@@ -57,10 +57,10 @@
     const bool clean_output_directory = true;
     const int res_X = 800;
     const int res_Y = 600;
-    const float scale = 30;
+    const float scale = 40;
     const float offset_X = -10;
     const float offset_Y = -5;
-    const float time_per_frame = 0.001f;
+    const float time_per_frame = 0.1f;
 
     // Surface
     const bool show_surface = true;

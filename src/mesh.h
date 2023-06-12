@@ -112,7 +112,7 @@ class Mesh {
                 float ydiff = point.y - atom.pos.y;
                 float zdiff = point.z - atom.pos.z;
 
-                float l = sqrtf(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff);
+                float l = xdiff*xdiff + ydiff*ydiff + zdiff*zdiff;
 
                 if(l < dist) {
                     dist = l;
@@ -258,15 +258,19 @@ class Mesh {
                 // Create temporary wrapping atoms
 
                 std::vector<Atom> tmp_atoms;
-                Atom* tmp_grid[width][depth][height];
+                tmp_atoms.reserve(height*width*depth);
+                int tmp_grid[width][depth][height];
+                std::vector<tri> tmp_tris;
 
                 // top and bottom
                 for(int x = 0; x < width; x++) {
                     for(int y = 0; y < depth; y++) {
                         // bottom
-                        tmp_grid[x][y][0] = &tmp_atoms.emplace_back(vec3(x, y, 0), atom_mass, false);
+                        tmp_grid[x][y][0] = tmp_atoms.size();
+                        tmp_atoms.emplace_back(vec3(x, y, 0), atom_mass, false);
                         // top
-                        tmp_grid[x][y][height-1] = &tmp_atoms.emplace_back(vec3(x, y, height-1), atom_mass, false);
+                        tmp_grid[x][y][height-1] = tmp_atoms.size();
+                        tmp_atoms.emplace_back(vec3(x, y, height-1), atom_mass, false);
                     }
                 }
 
@@ -274,17 +278,29 @@ class Mesh {
                 for(int z = 0; z < height; z++) {
                     for(int x = 0; x < width; x++) {
                         // south
-                        tmp_grid[x][0][z] = &tmp_atoms.emplace_back(vec3(x, 0, z*layer_height), atom_mass, false);
+                        tmp_grid[x][0][z] = tmp_atoms.size();
+                        tmp_atoms.emplace_back(vec3(x, 0, z*layer_height), atom_mass, false);
                         // north
-                        tmp_grid[x][depth-1][z] = &tmp_atoms.emplace_back(vec3(x, depth-1, z*layer_height), atom_mass, false);
+                        tmp_grid[x][depth-1][z] = tmp_atoms.size();
+                        tmp_atoms.emplace_back(vec3(x, depth-1, z*layer_height), atom_mass, false);
                     }
 
                     for(int y = 0; y < depth; y++) {
                         // west
-                        tmp_grid[0][y][z] = &tmp_atoms.emplace_back(vec3(0, y, z*layer_height), atom_mass, false);
+                        tmp_grid[0][y][z] = tmp_atoms.size();
+                        tmp_atoms.emplace_back(vec3(0, y, z*layer_height), atom_mass, false);
                         // east
-                        tmp_grid[width-1][y][z] = &tmp_atoms.emplace_back(vec3(width-1, y, z*layer_height), atom_mass, false);
+                        tmp_grid[width-1][y][z] = tmp_atoms.size();
+                        tmp_atoms.emplace_back(vec3(width-1, y, z*layer_height), atom_mass, false);
                     }
+                }
+
+                std::vector<Atom*> tmp_atom_ptr(tmp_atoms.size());
+                std::vector<bool> tmp_atom_final(tmp_atoms.size());
+
+                for(int i = 0; i < tmp_atom_ptr.size(); i++) {
+                    tmp_atom_ptr[i] = &tmp_atoms[i];
+                    tmp_atom_final[i] = false;
                 }
 
                 // Fill in wrapping with tris
@@ -293,12 +309,12 @@ class Mesh {
                 for(int x = 0; x < width-1; x++) {
                     for(int y = 0; y < depth-1; y++) {
                         // bottom
-                        tri_list.emplace_back(tmp_grid[x][y][0], tmp_grid[x+1][y+1][0], tmp_grid[x][y+1][0]);
-                        tri_list.emplace_back(tmp_grid[x][y][0], tmp_grid[x+1][y][0], tmp_grid[x+1][y+1][0]);
+                        tmp_tris.emplace_back(tmp_grid[x][y][0], tmp_grid[x+1][y+1][0], tmp_grid[x][y+1][0]);
+                        tmp_tris.emplace_back(tmp_grid[x][y][0], tmp_grid[x+1][y][0], tmp_grid[x+1][y+1][0]);
 
                         // top
-                        tri_list.emplace_back(tmp_grid[x][y][height-1], tmp_grid[x][y+1][height-1], tmp_grid[x+1][y+1][height-1]);
-                        tri_list.emplace_back(tmp_grid[x][y][height-1], tmp_grid[x+1][y+1][height-1], tmp_grid[x+1][y][height-1]);
+                        tmp_tris.emplace_back(tmp_grid[x][y][height-1], tmp_grid[x][y+1][height-1], tmp_grid[x+1][y+1][height-1]);
+                        tmp_tris.emplace_back(tmp_grid[x][y][height-1], tmp_grid[x+1][y+1][height-1], tmp_grid[x+1][y][height-1]);
                     }
                 }
 
@@ -307,56 +323,66 @@ class Mesh {
                 for(int z = 0; z < height-1; z++) {
                     for(int x = 0; x < width-1; x++) {
                         // south
-                        tri_list.emplace_back(tmp_grid[x][0][z], tmp_grid[x][0][z+1], tmp_grid[x+1][0][z+1]);
-                        tri_list.emplace_back(tmp_grid[x][0][z], tmp_grid[x+1][0][z+1], tmp_grid[x+1][0][z]);
+                        tmp_tris.emplace_back(tmp_grid[x][0][z], tmp_grid[x][0][z+1], tmp_grid[x+1][0][z+1]);
+                        tmp_tris.emplace_back(tmp_grid[x][0][z], tmp_grid[x+1][0][z+1], tmp_grid[x+1][0][z]);
 
                         // north
-                        tri_list.emplace_back(tmp_grid[x][depth-1][z], tmp_grid[x+1][depth-1][z+1], tmp_grid[x][depth-1][z+1]);
-                        tri_list.emplace_back(tmp_grid[x][depth-1][z], tmp_grid[x+1][depth-1][z], tmp_grid[x+1][depth-1][z+1]);
+                        tmp_tris.emplace_back(tmp_grid[x][depth-1][z], tmp_grid[x+1][depth-1][z+1], tmp_grid[x][depth-1][z+1]);
+                        tmp_tris.emplace_back(tmp_grid[x][depth-1][z], tmp_grid[x+1][depth-1][z], tmp_grid[x+1][depth-1][z+1]);
                     }
 
                     for(int y = 0; y < depth-1; y++) {
                         // west
-                        tri_list.emplace_back(tmp_grid[0][y][z], tmp_grid[0][y+1][z+1], tmp_grid[0][y][z+1]);
-                        tri_list.emplace_back(tmp_grid[0][y][z], tmp_grid[0][y+1][z], tmp_grid[0][y+1][z+1]);
+                        tmp_tris.emplace_back(tmp_grid[0][y][z], tmp_grid[0][y+1][z+1], tmp_grid[0][y][z+1]);
+                        tmp_tris.emplace_back(tmp_grid[0][y][z], tmp_grid[0][y+1][z], tmp_grid[0][y+1][z+1]);
 
                         // east
-                        tri_list.emplace_back(tmp_grid[width-1][y][z], tmp_grid[width-1][y][z+1], tmp_grid[width-1][y+1][z+1]);
-                        tri_list.emplace_back(tmp_grid[width-1][y][z], tmp_grid[width-1][y+1][z+1], tmp_grid[width-1][y+1][z]);
+                        tmp_tris.emplace_back(tmp_grid[width-1][y][z], tmp_grid[width-1][y][z+1], tmp_grid[width-1][y+1][z+1]);
+                        tmp_tris.emplace_back(tmp_grid[width-1][y][z], tmp_grid[width-1][y+1][z+1], tmp_grid[width-1][y+1][z]);
                     }
                 }
 
                 // Shrink wrapping
-                int decrement = clamp(100.0f / max(max(mesh_size.x, mesh_size.y), mesh_size.z), 1.0f, 100.0f);
+                for(auto &atom : atom_list) {
+                    atom.pos = atom.pos - center;
+                }
+                for(auto &atom : tmp_atoms) {
+                    atom.pos = atom.pos - center;
+                }
 
-                for(int per_cent = 100; per_cent >= 1; per_cent -= decrement) {
-                    for(auto &tri : tri_list) {
-                        Atom* atom_ptr = get_closest_atom(tri.a->pos * (per_cent * 0.01f));
-                        if(atom_ptr != nullptr && tri.a_tmp) {
-                            tri.a = atom_ptr;
-                            tri.a_tmp = false;
-                        }
+                // float decrement = clamp(1 / max(max(mesh_size.x, mesh_size.y), mesh_size.z), 1.0f, 100.0f);
+                float decrement = 0.99f;
 
-                        atom_ptr = get_closest_atom(tri.b->pos * (per_cent * 0.01f));
-                        if(atom_ptr != nullptr && tri.b_tmp) {
-                            tri.b = atom_ptr;
-                            tri.b_tmp = false;
-                        }
-
-                        atom_ptr = get_closest_atom(tri.c->pos * (per_cent * 0.01f));
-                        if(atom_ptr != nullptr && tri.c_tmp) {
-                            tri.c = atom_ptr;
-                            tri.c_tmp = false;
+                for(int i = 0; i < tmp_atom_ptr.size(); i++) {
+                    for(float factor = 1; factor >= 0.005; factor *= decrement) {
+                        Atom* atom_ptr = get_closest_atom(tmp_atom_ptr[i]->pos * factor);
+                        if(atom_ptr != nullptr) {
+                            tmp_atom_ptr[i] = atom_ptr;
+                            tmp_atom_final[i] = true;
+                            break;
                         }
                     }
+                }
+
+                for(auto &atom : atom_list) {
+                    atom.pos = atom.pos + center;
                 }
 
                 // Clean up tris
-                for(int i = 0; i < tri_list.size(); i++) {
-                    if(tri_list[i].a == tri_list[i].b || tri_list[i].b == tri_list[i].c || tri_list[i].c == tri_list[i].a) {
-                        tri_list.erase(tri_list.begin() + i);
+                for(int i = 0; i < tmp_tris.size(); i++) {
+                    tmp_tris[i].fill_pointers(tmp_atom_ptr.data());
+
+                    if(tmp_tris[i].a != tmp_tris[i].b && tmp_tris[i].b != tmp_tris[i].c && tmp_tris[i].c != tmp_tris[i].a
+                       && tmp_atom_final[tmp_tris[i].ai] && tmp_atom_final[tmp_tris[i].bi] && tmp_atom_final[tmp_tris[i].ci]) {
+                        tri_list.push_back(tmp_tris[i]);
                     }
+
+                    // for(int i = 0; i < tri_list.size(); i++) {
+                    //     cout << "p: " << tri_list[i].a << " " << tri_list[i].b << " " << tri_list[i].c << endl;
+                    //     cout << "i: " << tri_list[i].ai << " " << tri_list[i].bi << " " << tri_list[i].ci << endl;
+                    // }
                 }
+
             }
 
             // transform

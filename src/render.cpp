@@ -87,11 +87,9 @@ vec3 get_normal(tri tri) {
 }
 
 
-float get_light_intensity(tri tri) {
-    vec3 normal = get_normal(tri);
-
-    float l = sqrtf(light_direction.x*light_direction.x + light_direction.y*light_direction.y + light_direction.z*light_direction.z);
-    vec3 light = vec3(light_direction.x / l, light_direction.y / l, light_direction.z / l);
+float get_light_intensity(tri tri, vec3 normal) {
+    float l =  1 / sqrtf(light_direction.x*light_direction.x + light_direction.y*light_direction.y + light_direction.z*light_direction.z);
+    vec3 light = vec3(light_direction.x * l, light_direction.y * l, light_direction.z * l);
 
     return clamp(normal.x*light.x + normal.y*light.y + normal.z*light.z, 0.0f, 1.0f);
 }
@@ -106,9 +104,11 @@ void draw_tris() {
     sort_tris();
 
     for(auto &tri : mesh.tri_list) {
-        float brightness = get_light_intensity(tri);
+        vec3 normal = get_normal(tri);
 
-        // if(brightness > 0) {
+        float brightness = get_light_intensity(tri, normal);
+
+        if(normal.y < 0) {
             vec3 a = vec3((tri.a->pos.x - offset_X) * inverse_scale * res_X, (tri.a->pos.z - offset_Y) * inverse_scale * res_X, 0);
             vec3 b = vec3((tri.b->pos.x - offset_X) * inverse_scale * res_X, (tri.b->pos.z - offset_Y) * inverse_scale * res_X, 0);
             vec3 c = vec3((tri.c->pos.x - offset_X) * inverse_scale * res_X, (tri.c->pos.z - offset_Y) * inverse_scale * res_X, 0);
@@ -135,7 +135,7 @@ void draw_tris() {
                     }
                 }
             }
-        // }
+        }
     }
 }
 

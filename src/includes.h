@@ -3,20 +3,28 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
-
-// Global Settings
-#include "settings.h"
+#include <fstream>
+#include <string>
+#include <stdlib.h>
+#include <sstream>
+#include <algorithm>
+#include <time.h>
 
 // Util
 #include "util.h"
 
-// Objects
+// Global Settings
+#include "settings.h"
+
+// Classes
+#include "tri.h"
 #include "spring.h"
 #include "atom.h"
+#include "mesh.h"
 
 // Variables
-// extern vector<Atom> atom_list;
-// extern vector<Spring> spring_list;
+extern Mesh mesh;
 
 // Functions
 void start_sim();
+void render(int frame_i);

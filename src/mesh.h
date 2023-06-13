@@ -385,6 +385,15 @@ class Mesh {
 
             }
 
+            // store spring_i-s in atoms
+            for(auto &atom : atom_list) {
+                for(int i = 0; i < spring_list.size(); i++) {
+                    if(spring_list[i].atom_a == &atom || spring_list[i].atom_b == &atom) {
+                        atom.springs.push_back(i);
+                    }
+                }
+            }
+
             // transform
             transform(center);
         }

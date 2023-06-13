@@ -1,5 +1,4 @@
 /run
 /output/*
-!/output
 /graphs/output*
 !/graphs

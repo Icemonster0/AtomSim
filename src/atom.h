@@ -9,6 +9,7 @@ class Atom {
         vec3 vel;
         float mass;
         bool fixed;
+        std::vector<int> springs;
 
         Atom(vec3 p_pos, float p_mass, bool p_fixed) : pos(p_pos), mass(p_mass), fixed(p_fixed), vel(vec3(0, 0, 0)) {
         }

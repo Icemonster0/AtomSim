@@ -143,22 +143,24 @@ void draw_tris() {
 void draw_spring_tension() {
     #pragma omp parallel for schedule(static)
     for(auto &spring : mesh.spring_list) {
-        int frame_X = ((spring.atom_a->pos.x + spring.atom_b->pos.x) * 0.5 - offset_X) * inverse_scale * res_X;
-        int frame_Y = ((spring.atom_a->pos.z + spring.atom_b->pos.z) * 0.5 - offset_Y) * inverse_scale * res_X;
+        if(spring.k != 0) {
+            int frame_X = ((spring.atom_a->pos.x + spring.atom_b->pos.x) * 0.5 - offset_X) * inverse_scale * res_X;
+            int frame_Y = ((spring.atom_a->pos.z + spring.atom_b->pos.z) * 0.5 - offset_Y) * inverse_scale * res_X;
 
-        if(frame_X < res_X && frame_X >= 0 && frame_Y < res_Y && frame_Y >= 0) {
-            // float value = spring.calculate_length() / (2 * spring.resting_length);
-            float value = color_scale * (spring.calculate_length() / spring.resting_length - 1) + 0.5;
-            value = clamp(value, 0.0f, 1.0f);
-            // cout << value << endl;
-            // value = 1.0f;
+            if(frame_X < res_X && frame_X >= 0 && frame_Y < res_Y && frame_Y >= 0) {
+                // float value = spring.calculate_length() / (2 * spring.resting_length);
+                float value = color_scale * (spring.calculate_length() / spring.resting_length - 1) + 0.5;
+                value = clamp(value, 0.0f, 1.0f);
+                // cout << value << endl;
+                // value = 1.0f;
 
-            // frame[frame_x][frame_y].r = 0.4 * value * value;
-            // frame[frame_x][frame_y].g = 0.3 * (-powf(2 * value - 1, 2) + 1);
-            // frame[frame_x][frame_y].b = -powf(value - 1, 2) + 1;
-            frame[frame_X][frame_Y].r = value;
-            frame[frame_X][frame_Y].g = 0.4f;
-            frame[frame_X][frame_Y].b = -value + 1;
+                // frame[frame_x][frame_y].r = 0.4 * value * value;
+                // frame[frame_x][frame_y].g = 0.3 * (-powf(2 * value - 1, 2) + 1);
+                // frame[frame_x][frame_y].b = -powf(value - 1, 2) + 1;
+                frame[frame_X][frame_Y].r = value;
+                frame[frame_X][frame_Y].g = 0.4f;
+                frame[frame_X][frame_Y].b = -value + 1;
+            }
         }
     }
 }

@@ -10,11 +10,27 @@ void update_position(float delta_t) {
 }
 
 
+void break_springs() {
+    for(auto &atom : mesh.atom_list) {
+        int working_springs = 0;
+        for(auto &spring_i : atom.springs) {
+            if(mesh.spring_list[spring_i].k) working_springs++;
+        }
+        if(working_springs <= 2) {
+            for(auto &spring_i : atom.springs)
+                mesh.spring_list[spring_i].k = 0;
+        }
+    }
+}
+
+
 void update_velocity(float delta_t) {
     #pragma omp parallel for schedule(static)
     for(auto &spring : mesh.spring_list) {
         spring.calculate_acceleration(delta_t);
     }
+    if(breaking)
+        break_springs();
     for(auto &spring : mesh.spring_list) {
         spring.apply_acceleration();
     }
@@ -113,7 +129,42 @@ void output_temp_curve(float time) {
 
     file.close();
 
-    if(system(("gnuplot -e \"set terminal png size " + to_string(res_X) + "," + to_string(res_Y) + "; set xr [0:1]; set yr [0:70]; set output '" + output_path + "/" + to_string(time) + ".png'; plot '" + temp_output_file + "' u 1:2\"").c_str())) {
+    if(system(("gnuplot -e \"set terminal png size " + to_string(res_X) + "," + to_string(res_Y) + "; set xr [0:" + to_string(starting_temp) + "]; set yr [0:" + to_string(plot_height) + "]; set output '" + output_path + "/" + to_string(time) + ".png'; plot '" + temp_output_file + "' u 1:2\"").c_str())) {
+        cout << "Failed to plot graph. Read the README for a possible solution." << endl;
+        exit(1);
+    }
+}
+
+
+float avg_layer_temp(int layer) {
+    float sum = 0;
+
+    for(int i = layer * mesh_size.x * mesh_size.y; i < (layer+1) * mesh_size.x * mesh_size.y; i++) {
+        float vel = mesh.atom_list[i].vel.x*mesh.atom_list[i].vel.x
+        + mesh.atom_list[i].vel.y*mesh.atom_list[i].vel.y
+        + mesh.atom_list[i].vel.z*mesh.atom_list[i].vel.z;
+        sum += vel;
+    }
+
+    return sum / (mesh_size.x * mesh_size.y);
+}
+
+
+void plot_avg_temps(float time) {
+    ofstream file;
+    file.open(temp_output_file);
+    if(!file.is_open()) {
+        cout << "Failed to open file in  sim.cpp: plot_avg_temps" << endl;
+        exit(1);
+    }
+
+    for(int i = 0; i < mesh_size.z; i++) {
+        file << i << " " << avg_layer_temp(i) << endl;
+    }
+
+    file.close();
+
+    if(system(("gnuplot -e \"set terminal png size " + to_string(res_X) + "," + to_string(res_Y) + "; set xr [0:" + to_string(mesh_size.z) + "]; set yr [0:" + to_string(starting_temp) + "]; set output '" + output_path + "/" + to_string(time) + ".png'; plot '" + temp_output_file + "' u 1:2\"").c_str())) {
         cout << "Failed to plot graph. Read the README for a possible solution." << endl;
         exit(1);
     }
@@ -151,9 +202,12 @@ void start_sim() {
         // render
         int steps_per_frame = time_per_frame / delta_t;
         if(t % steps_per_frame == 0 && render_enable) {
-            if(temperature_sim)
-                output_temp_curve(t * delta_t);
-            else
+            if(temperature_sim) {
+                if(render_distribution)
+                    output_temp_curve(t * delta_t);
+                else
+                    plot_avg_temps(t * delta_t);
+            } else
                 render(t / steps_per_frame);
 
         }

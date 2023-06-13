@@ -45,6 +45,11 @@ class Spring {
             float zdiff = atom_a->pos.z - atom_b->pos.z;
 
             float l = sqrtf(xdiff*xdiff + ydiff*ydiff + zdiff*zdiff);
+
+            if(breaking && l > resting_length * breaking_distance) {
+                k = 0;
+            }
+
             //  non-linear:
             float force_str = force_curve(l - resting_length);
             // cout << "force length: " << force_str << endl;

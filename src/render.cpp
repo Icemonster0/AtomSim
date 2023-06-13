@@ -140,27 +140,46 @@ void draw_tris() {
 }
 
 
+bool compare_spring_depth(Spring spring1, Spring spring2) {
+    float mid1 = (spring1.atom_a->pos.y + spring1.atom_b->pos.y) / 2;
+    float mid2 = (spring2.atom_a->pos.y + spring2.atom_b->pos.y) / 2;
+    return (mid1 < mid2);
+}
+
+
+void sort_springs() {
+    sort(mesh.spring_list.begin(), mesh.spring_list.end(), compare_spring_depth);
+}
+
+
+void draw_line(vec3 a, vec3 b, color col) {
+    vec3 path = a - b;
+    float l = sqrtf(path.x*path.x + path.y*path.y);
+    vec3 step = path / l;
+
+    vec3 pos = b;
+    for(int i = 0; i < l; i++) {
+        if(pos.x >= 0 && pos.x < res_X && pos.y >= 0 && pos.y < res_Y)
+            frame[(int)pos.x][(int)pos.y] = col;
+        pos = pos + step;
+    }
+}
+
+
 void draw_spring_tension() {
-    #pragma omp parallel for schedule(static)
+    sort_springs();
+
     for(auto &spring : mesh.spring_list) {
         if(spring.k != 0) {
-            int frame_X = ((spring.atom_a->pos.x + spring.atom_b->pos.x) * 0.5 - offset_X) * inverse_scale * res_X;
-            int frame_Y = ((spring.atom_a->pos.z + spring.atom_b->pos.z) * 0.5 - offset_Y) * inverse_scale * res_X;
+            vec3 a = vec3((spring.atom_a->pos.x - offset_X) * inverse_scale * res_X, (spring.atom_a->pos.z - offset_Y) * inverse_scale * res_X, 0);
+            vec3 b = vec3((spring.atom_b->pos.x - offset_X) * inverse_scale * res_X, (spring.atom_b->pos.z - offset_Y) * inverse_scale * res_X, 0);
 
-            if(frame_X < res_X && frame_X >= 0 && frame_Y < res_Y && frame_Y >= 0) {
-                // float value = spring.calculate_length() / (2 * spring.resting_length);
-                float value = color_scale * (spring.calculate_length() / spring.resting_length - 1) + 0.5;
-                value = clamp(value, 0.0f, 1.0f);
-                // cout << value << endl;
-                // value = 1.0f;
+            float value = color_scale * (spring.calculate_length() / spring.resting_length - 1) + 0.5;
+            value = clamp(value, 0.0f, 1.0f);
 
-                // frame[frame_x][frame_y].r = 0.4 * value * value;
-                // frame[frame_x][frame_y].g = 0.3 * (-powf(2 * value - 1, 2) + 1);
-                // frame[frame_x][frame_y].b = -powf(value - 1, 2) + 1;
-                frame[frame_X][frame_Y].r = value;
-                frame[frame_X][frame_Y].g = 0.4f;
-                frame[frame_X][frame_Y].b = -value + 1;
-            }
+            color col = color(value, 0.35f, -value + 1);
+
+            draw_line(a, b, col);
         }
     }
 }
@@ -172,8 +191,22 @@ void draw_atoms() {
         int frame_x = (atom.pos.x - offset_X) * inverse_scale * res_X;
         int frame_y = (atom.pos.z - offset_Y) * inverse_scale * res_X;
 
-        if(frame_x < res_X && frame_x >= 0 && frame_y < res_Y && frame_y >= 0)
-            frame[frame_x][frame_y] = draw_color;
+        int x_min = frame_x - atom_radius;
+        int x_max = frame_x + atom_radius;
+        int y_min = frame_y - atom_radius;
+        int y_max = frame_y + atom_radius;
+
+        for(int x = x_min; x <= x_max; x++) {
+            for(int y = y_min; y <= y_max; y++) {
+                int x_diff = frame_x - x;
+                int y_diff = frame_y - y;
+
+                float l = sqrtf(x_diff*x_diff + y_diff*y_diff);
+
+                if(l <= atom_radius && x < res_X && x >= 0 && y < res_Y && y >= 0)
+                    frame[x][y] = atom_draw_color;
+            }
+        }
     }
 }
 

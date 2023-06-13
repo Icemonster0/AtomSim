@@ -209,7 +209,6 @@ void start_sim() {
                     plot_avg_temps(t * delta_t);
             } else
                 render(t / steps_per_frame);
-
         }
     }
 

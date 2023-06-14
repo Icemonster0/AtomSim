@@ -141,7 +141,6 @@ class Mesh {
             vec3 center = vec3(((float)width + 0.5) * 0.5f,
                                ((float)depth + 0.5) * 0.5f,
                                (float)height * layer_height * 0.5f);
-            // bool even_height = (height % 2 == 0);
 
             atom_list.reserve(height*width*depth);
 
@@ -405,7 +404,14 @@ class Mesh {
             // colors
             if(colored) {
                 for(auto &tri : tri_list) {
-                    tri.col = color((float)rand()/RAND_MAX, (float)rand()/RAND_MAX, (float)rand()/RAND_MAX);
+                    color surface_col = color(surface_color.r, surface_color.g, surface_color.b);
+                    color random_col = color((float)rand()/RAND_MAX, (float)rand()/RAND_MAX, (float)rand()/RAND_MAX );
+                    color col = (surface_col*(1.0f-randomize_color)) + (random_col*randomize_color);
+                    // if(random_color)
+                    //     tri.col = color((float)rand()/RAND_MAX, (float)rand()/RAND_MAX, (float)rand()/RAND_MAX);
+                    // else
+                    //     tri.col = surface_color;
+                    tri.col = col;
                 }
             }
         }

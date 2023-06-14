@@ -2,3 +2,5 @@
 /output/*
 /graphs/output*
 !/graphs
+/cache
+!/cache/cache1

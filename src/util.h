@@ -37,6 +37,26 @@ struct color {
 
     color(float pr, float pg, float pb) : r(pr), g(pg), b(pb) {
     }
+
+    inline color operator-(color v) {
+        return {r - v.r, g - v.g, b - v.b};
+    }
+
+    inline color operator+(color v) {
+        return {r + v.r, g + v.g, b + v.b};
+    }
+
+    inline color operator*(float f) {
+        return {r * f, g * f, b * f};
+    }
+
+    inline color operator*(color c) {
+        return {r * c.r, g * c.g, b * c.b};
+    }
+
+    inline color operator/(float f) {
+        return {r / f, g / f, b / f};
+    }
 };
 
 

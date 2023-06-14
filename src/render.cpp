@@ -175,6 +175,7 @@ void draw_line(vec3 a, vec3 b, color col) {
     vec3 step = path / l;
 
     vec3 pos = b;
+
     for(int i = 0; i < l; i++) {
         if(pos.x >= 0 && pos.x < res_X && pos.y >= 0 && pos.y < res_Y)
             frame[(int)pos.x][(int)pos.y] = col;

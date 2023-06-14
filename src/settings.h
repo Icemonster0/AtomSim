@@ -39,7 +39,11 @@
 
 // INITIAL CONDITION -----------------------------------------------------------
     // Mesh size
-    const vec3 mesh_size = vec3(10, 10, 10);
+    const vec3 mesh_size = vec3(10, 10, 11);
+
+    // Shape
+    const bool tetrahedron = false; // false: use mesh_size to generate block
+    const float tetrahedron_size = 1.0f;
 
     // Modifiers
     const bool fix_top = false;
@@ -51,7 +55,7 @@
     const float mesh_shear = 0.0f;
     const vec3 mesh_stretch = vec3(1, 1, 1);
     const vec3 mesh_rotation = vec3(0.0, 0.5, 0.2);
-    const vec3 mesh_offset = vec3(0, 0, 4);
+    const vec3 mesh_offset = vec3(0, 0, 3);
 
 
 // RENDER ----------------------------------------------------------------------
@@ -62,22 +66,23 @@
     const bool clean_output_directory = true; // recommended
     const int res_X = 800;
     const int res_Y = 600;
-    const float scale = 20;
-    const float offset_X = -5;
+    const float scale = 30;
+    const float offset_X = -10;
     const float offset_Y = -5;
     const float time_per_frame = 0.1f;
 
     // Surface
-    const bool show_surface = false;
+    const bool show_surface = true;
     const bool flat_sides = true; // also rounds mesh height down to an odd number
     const vec3 light_direction = vec3(-1, -1, -0.5);
+    const bool colored = true;
 
     // Springs
     const bool show_tension = false;
     const float color_scale = 4.0f;
 
     // Atoms
-    const bool show_atoms = true;
+    const bool show_atoms = false;
     const color atom_draw_color = color(1.0f, 1.0f, 1.0f);
     const float atom_radius = 2.5;
 

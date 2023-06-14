@@ -38,3 +38,12 @@ struct color {
     color(float pr, float pg, float pb) : r(pr), g(pg), b(pb) {
     }
 };
+
+
+struct element {
+    int index;
+    int type;
+
+    element(int p_index, int p_type) : index(p_index), type(p_type) {
+    }
+};

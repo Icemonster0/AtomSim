@@ -61,15 +61,47 @@ void convert_to_png(int frame_i) {
 }
 
 
-bool compare_tri_depth(tri tri1, tri tri2) {
-    float mid1 = (tri1.a->pos.y + tri1.b->pos.y + tri1.c->pos.y) / 3;
-    float mid2 = (tri2.a->pos.y + tri2.b->pos.y + tri2.c->pos.y) / 3;
-    return (mid1 < mid2);
+bool compare_element_depth(element e1, element e2) {
+    element* e_ptrs[2] = {&e1, &e2};
+    float e_pos[2];
+
+    for(int i = 0; i < 2; i++) {
+        if(e_ptrs[i]->type == 1) {
+            e_pos[i] = mesh.atom_list[e_ptrs[i]->index].pos.y;
+        }
+        else if(e_ptrs[i]->type == 2) {
+            e_pos[i] = (mesh.spring_list[e_ptrs[i]->index].atom_a->pos.y + mesh.spring_list[e_ptrs[i]->index].atom_b->pos.y) / 2;
+        }
+        else if(e_ptrs[i]->type == 3) {
+            e_pos[i] = (mesh.tri_list[e_ptrs[i]->index].a->pos.y + mesh.tri_list[e_ptrs[i]->index].b->pos.y + mesh.tri_list[e_ptrs[i]->index].c->pos.y) / 3;
+        }
+        else {
+            cout << "invalid element type in render.cpp: compare_element_depth" << endl;
+            exit(1);
+        }
+    }
+
+    return (e_pos[0] < e_pos[1]);
 }
 
 
-void sort_tris() {
-    sort(mesh.tri_list.begin(), mesh.tri_list.end(), compare_tri_depth);
+vector<element> sort_elements(vector<element> elements) {
+    if(show_surface)
+        for(int i = 0; i < mesh.tri_list.size(); i++) {
+            elements.emplace_back(i, 3);
+        }
+    if(show_tension)
+        for(int i = 0; i < mesh.spring_list.size(); i++) {
+            elements.emplace_back(i, 2);
+        }
+    if(show_atoms)
+        for(int i = 0; i < mesh.atom_list.size(); i++) {
+            elements.emplace_back(i, 1);
+        }
+
+    sort(elements.begin(), elements.end(), compare_element_depth);
+
+    return elements;
 }
 
 
@@ -100,55 +132,40 @@ bool get_side(vec3 a, vec3 b, vec3 c) { // returns on which side of the line a--
 }
 
 
-void draw_tris() {
-    sort_tris();
+void draw_tri(tri* tri) {
+    vec3 normal = get_normal(*tri);
 
-    for(auto &tri : mesh.tri_list) {
-        vec3 normal = get_normal(tri);
+    float brightness = get_light_intensity(*tri, normal) * 0.9 + 0.1;
 
-        float brightness = get_light_intensity(tri, normal);
+    if(normal.y < 0) {
+        vec3 a = vec3((tri->a->pos.x - offset_X) * inverse_scale * res_X, (tri->a->pos.z - offset_Y) * inverse_scale * res_X, 0);
+        vec3 b = vec3((tri->b->pos.x - offset_X) * inverse_scale * res_X, (tri->b->pos.z - offset_Y) * inverse_scale * res_X, 0);
+        vec3 c = vec3((tri->c->pos.x - offset_X) * inverse_scale * res_X, (tri->c->pos.z - offset_Y) * inverse_scale * res_X, 0);
 
-        if(normal.y < 0) {
-            vec3 a = vec3((tri.a->pos.x - offset_X) * inverse_scale * res_X, (tri.a->pos.z - offset_Y) * inverse_scale * res_X, 0);
-            vec3 b = vec3((tri.b->pos.x - offset_X) * inverse_scale * res_X, (tri.b->pos.z - offset_Y) * inverse_scale * res_X, 0);
-            vec3 c = vec3((tri.c->pos.x - offset_X) * inverse_scale * res_X, (tri.c->pos.z - offset_Y) * inverse_scale * res_X, 0);
+        int min_x = min(min(a.x, b.x), c.x);
+        int min_y = min(min(a.y, b.y), c.y);
+        int max_x = max(max(a.x, b.x), c.x);
+        int max_y = max(max(a.y, b.y), c.y);
 
-            int min_x = min(min(a.x, b.x), c.x);
-            int min_y = min(min(a.y, b.y), c.y);
-            int max_x = max(max(a.x, b.x), c.x);
-            int max_y = max(max(a.y, b.y), c.y);
+        vec3 center = vec3((a.x + b.x + c.x) / 3, (a.y + b.y + c.y) / 3, 0);
 
-            vec3 center = vec3((a.x + b.x + c.x) / 3, (a.y + b.y + c.y) / 3, 0);
+        bool inside_a = get_side(a, b, center);
+        bool inside_b = get_side(b, c, center);
+        bool inside_c = get_side(c, a, center);
 
-            bool inside_a = get_side(a, b, center);
-            bool inside_b = get_side(b, c, center);
-            bool inside_c = get_side(c, a, center);
+        #pragma omp parallel for schedule(static) collapse(2)
+        for(int x = min_x; x <= max_x; x++) {
+            for(int y = min_y; y <= max_y; y++) {
+                if(x < res_X && x >= 0 && y < res_Y && y >= 0 &&
+                   get_side(a, b, vec3(x, y, 0)) == inside_a &&
+                   get_side(b, c, vec3(x, y, 0)) == inside_b &&
+                   get_side(c, a, vec3(x, y, 0)) == inside_c) {
 
-            for(int x = min_x; x <= max_x; x++) {
-                for(int y = min_y; y <= max_y; y++) {
-                    if(x < res_X && x >= 0 && y < res_Y && y >= 0 &&
-                       get_side(a, b, vec3(x, y, 0)) == inside_a &&
-                       get_side(b, c, vec3(x, y, 0)) == inside_b &&
-                       get_side(c, a, vec3(x, y, 0)) == inside_c) {
-
-                        frame[x][y] = color(brightness, brightness, brightness);
-                    }
+                    frame[x][y] = color(brightness * tri->col.r, brightness * tri->col.g, brightness * tri->col.b);
                 }
             }
         }
     }
-}
-
-
-bool compare_spring_depth(Spring spring1, Spring spring2) {
-    float mid1 = (spring1.atom_a->pos.y + spring1.atom_b->pos.y) / 2;
-    float mid2 = (spring2.atom_a->pos.y + spring2.atom_b->pos.y) / 2;
-    return (mid1 < mid2);
-}
-
-
-void sort_springs() {
-    sort(mesh.spring_list.begin(), mesh.spring_list.end(), compare_spring_depth);
 }
 
 
@@ -166,36 +183,33 @@ void draw_line(vec3 a, vec3 b, color col) {
 }
 
 
-void draw_spring_tension() {
-    sort_springs();
+void draw_spring_tension(Spring* spring) {
+    if(spring->k != 0) {
+        vec3 a = vec3((spring->atom_a->pos.x - offset_X) * inverse_scale * res_X, (spring->atom_a->pos.z - offset_Y) * inverse_scale * res_X, 0);
+        vec3 b = vec3((spring->atom_b->pos.x - offset_X) * inverse_scale * res_X, (spring->atom_b->pos.z - offset_Y) * inverse_scale * res_X, 0);
 
-    for(auto &spring : mesh.spring_list) {
-        if(spring.k != 0) {
-            vec3 a = vec3((spring.atom_a->pos.x - offset_X) * inverse_scale * res_X, (spring.atom_a->pos.z - offset_Y) * inverse_scale * res_X, 0);
-            vec3 b = vec3((spring.atom_b->pos.x - offset_X) * inverse_scale * res_X, (spring.atom_b->pos.z - offset_Y) * inverse_scale * res_X, 0);
+        float value = color_scale * (spring->calculate_length() / spring->resting_length - 1) + 0.5;
+        value = clamp(value, 0.0f, 1.0f);
 
-            float value = color_scale * (spring.calculate_length() / spring.resting_length - 1) + 0.5;
-            value = clamp(value, 0.0f, 1.0f);
+        color col = color(value, 0.35f, -value + 1);
 
-            color col = color(value, 0.35f, -value + 1);
-
-            draw_line(a, b, col);
-        }
+        draw_line(a, b, col);
     }
 }
 
 
-void draw_atoms() {
-    #pragma omp parallel for schedule(static)
-    for(auto &atom : mesh.atom_list) {
-        int frame_x = (atom.pos.x - offset_X) * inverse_scale * res_X;
-        int frame_y = (atom.pos.z - offset_Y) * inverse_scale * res_X;
+void draw_atom(Atom* atom) {
+    // for(auto &atom : mesh.atom_list) {
+        int frame_x = (atom->pos.x - offset_X) * inverse_scale * res_X;
+        int frame_y = (atom->pos.z - offset_Y) * inverse_scale * res_X;
 
         int x_min = frame_x - atom_radius;
         int x_max = frame_x + atom_radius;
         int y_min = frame_y - atom_radius;
         int y_max = frame_y + atom_radius;
 
+
+        #pragma omp parallel for schedule(static) collapse(2)
         for(int x = x_min; x <= x_max; x++) {
             for(int y = y_min; y <= y_max; y++) {
                 int x_diff = frame_x - x;
@@ -207,7 +221,7 @@ void draw_atoms() {
                     frame[x][y] = atom_draw_color;
             }
         }
-    }
+    // }
 }
 
 
@@ -225,14 +239,24 @@ void draw_floor() {
 void render(int frame_i) {
     clear_frame();
 
-    if(show_surface)
-        draw_tris();
-    if(show_tension)
-        draw_spring_tension();
-    if(show_atoms)
-        draw_atoms();
-    if(floor_enable)
-        draw_floor();
+    vector<element> elements;
+    elements = sort_elements(elements);
+
+    // cout << elements.size() << endl;
+    for(auto &element : elements) {
+        if(show_surface && element.type == 3) {
+            draw_tri(&mesh.tri_list[element.index]);
+        }
+        else if(show_tension && element.type == 2) {
+            draw_spring_tension(&mesh.spring_list[element.index]);
+        }
+        else if(show_atoms && element.type == 1) {
+            draw_atom(&mesh.atom_list[element.index]);
+        }
+
+        if(floor_enable)
+            draw_floor();
+    }
 
     print_pnm(frame_i);
 

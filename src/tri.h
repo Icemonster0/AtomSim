@@ -15,10 +15,12 @@ struct tri {
     int bi;
     int ci;
 
-    tri(Atom* pa, Atom* pb, Atom* pc) : a(pa), b(pb), c(pc) {
+    color col;
+
+    tri(Atom* pa, Atom* pb, Atom* pc) : a(pa), b(pb), c(pc), col(color(1.0, 1.0, 1.0)) {
     }
 
-    tri(int pa, int pb, int pc) : ai(pa), bi(pb), ci(pc) {
+    tri(int pa, int pb, int pc) : ai(pa), bi(pb), ci(pc), col(color(1.0, 1.0, 1.0)) {
     }
 
     void fill_pointers(Atom** vec) {

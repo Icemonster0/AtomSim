@@ -15,8 +15,13 @@ class Mesh {
         Mesh(vec3 p_size) : size(p_size) {
             if(load_cache) load_mesh_size();
             if(show_surface && flat_sides && (int)size.z % 2 == 0) size.z -= 1;
-            generate_trimesh((int)size.x, (int)size.y, (int)size.z);
-            if(load_cache) load_mesh_cache();
+
+            if(tetrahedron)
+                generate_tetrahedron();
+            else
+                generate_trimesh((int)size.x, (int)size.y, (int)size.z);
+
+            if(load_cache && !tetrahedron) load_mesh_cache();
         }
 
         void spring_cleanup() {
@@ -132,7 +137,7 @@ class Mesh {
             // them to smaller functions.
 
             Atom* grid[width][depth][height];
-            float layer_height = sqrt(0.5); // height of a tetrahedron with an edge length of 1.0
+            float layer_height = sqrt(0.5);
             vec3 center = vec3(((float)width + 0.5) * 0.5f,
                                ((float)depth + 0.5) * 0.5f,
                                (float)height * layer_height * 0.5f);
@@ -396,6 +401,61 @@ class Mesh {
 
             // transform
             transform(center);
+
+            // colors
+            if(colored) {
+                for(auto &tri : tri_list) {
+                    tri.col = color((float)rand()/RAND_MAX, (float)rand()/RAND_MAX, (float)rand()/RAND_MAX);
+                }
+            }
+        }
+
+        void generate_tetrahedron() {
+            Atom* atoms[4];
+
+            float t_height = sqrt(2.0f / 3.0f);
+            float t_depth = sqrt(0.75);
+
+            atom_list.reserve(4);
+
+            // atoms
+            atoms[0] = &atom_list.emplace_back(vec3(0, 0, 0), atom_mass, false);
+            atoms[1] = &atom_list.emplace_back(vec3(tetrahedron_size, 0, 0), atom_mass, false);
+            atoms[2] = &atom_list.emplace_back(vec3(0.5 * tetrahedron_size, t_depth * tetrahedron_size, 0), atom_mass, false);
+            atoms[3] = &atom_list.emplace_back(vec3(0.5 * tetrahedron_size, t_depth / 3 * tetrahedron_size, t_height * tetrahedron_size), atom_mass, false);
+
+            if(fix_top)
+                atoms[3]->fix();
+            if(fix_bottom) {
+                atoms[0]->fix();
+                atoms[1]->fix();
+                atoms[2]->fix();
+            }
+
+            // springs
+            spring_list.emplace_back(atoms[0], atoms[1], spring_constant);
+            spring_list.emplace_back(atoms[0], atoms[2], spring_constant);
+            spring_list.emplace_back(atoms[1], atoms[2], spring_constant);
+            spring_list.emplace_back(atoms[0], atoms[3], spring_constant);
+            spring_list.emplace_back(atoms[1], atoms[3], spring_constant);
+            spring_list.emplace_back(atoms[2], atoms[3], spring_constant);
+
+            // tris
+            if(show_surface) {
+                tri_list.emplace_back(atoms[0], atoms[1], atoms[2]);
+                tri_list.emplace_back(atoms[0], atoms[3], atoms[1]);
+                tri_list.emplace_back(atoms[0], atoms[2], atoms[3]);
+                tri_list.emplace_back(atoms[1], atoms[3], atoms[2]);
+                if(colored) {
+                    tri_list[0].col = color(1.0, 0.3, 0.3);
+                    tri_list[1].col = color(0.3, 1.0, 0.3);
+                    tri_list[2].col = color(0.3, 0.3, 1.0);
+                    tri_list[3].col = color(1.0, 0.9, 0.3);
+                }
+            }
+
+            // transform
+            transform(vec3(0.5, t_depth / 3, t_height / 4));
         }
 
         void save_mesh_cache() {

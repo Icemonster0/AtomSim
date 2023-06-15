@@ -119,11 +119,24 @@ vec3 get_normal(tri tri) {
 }
 
 
+float brightness_curve(float value) {
+    float fill = max(value * 0.7, 0.0);
+    float specular = max(value - 0.7, 0.0);
+    float edge = max(-value * 0.6, 0.0);
+
+    return fill + specular + edge;
+}
+
+
 float get_light_intensity(tri tri, vec3 normal) {
     float l =  1 / sqrtf(light_direction.x*light_direction.x + light_direction.y*light_direction.y + light_direction.z*light_direction.z);
     vec3 light = vec3(light_direction.x * l, light_direction.y * l, light_direction.z * l);
 
-    return clamp(normal.x*light.x + normal.y*light.y + normal.z*light.z, 0.0f, 1.0f);
+    float value = normal.x*light.x + normal.y*light.y + normal.z*light.z;
+
+    if(fancy_shader) value = brightness_curve(value);
+
+    return clamp(value, 0.0f, 1.0f);
 }
 
 

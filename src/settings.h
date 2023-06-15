@@ -7,10 +7,10 @@
     // General
     const float sim_length = 100;
     const float step_size = 0.01;
-    const float spring_constant = 10000.0f;
+    const float spring_constant = 8000.0f;
     const float atom_mass = 1.0f;
     const float gravity = 1.0f;
-    const float damping = 0.2;
+    const float damping = 0.0;
     const bool breaking = false;
     const float breaking_distance = 1.05;
     const bool floor_enable = true;
@@ -39,7 +39,7 @@
 
 // INITIAL CONDITION -----------------------------------------------------------
     // Mesh size
-    const vec3 mesh_size = vec3(40, 30, 25);
+    const vec3 mesh_size = vec3(30, 30, 30);
 
     // Shape
     const bool tetrahedron = false; // false: use mesh_size to generate block
@@ -66,7 +66,7 @@
     const bool clean_output_directory = true; // recommended
     const int res_X = 1600;
     const int res_Y = 1200;
-    const float scale = 70;
+    const float scale = 60;
     const float offset_X = -15;
     const float offset_Y = -10;
     const float time_per_frame = 0.17f;
@@ -75,7 +75,8 @@
     const bool show_surface = true;
     const bool flat_sides = true; // also rounds mesh height down to an odd number
     const vec3 light_direction = vec3(-1, -1, -0.5);
-    const bool colored = true;
+    const bool fancy_shader = true;
+    const bool colored = false;
     const color surface_color = color(0.72, 0.57, 0.41);
     const float randomize_color = 0.05f;
 

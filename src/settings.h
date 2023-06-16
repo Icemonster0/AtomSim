@@ -63,7 +63,7 @@
     const bool render_enable = true;
     const std::string output_path = "output/";
     const bool output_png = true; // false: output pnm
-    const bool clean_output_directory = true; // recommended
+    const bool clean_output_directory = true; // recommended; Make shure there are no important files in the directory!
     const int res_X = 1600;
     const int res_Y = 1200;
     const float scale = 60;

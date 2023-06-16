@@ -1,6 +1,6 @@
 /run
-/output/*
-/graphs/output*
-!/graphs
+/renders
+/output
+/graphs
 /cache
 !/cache/cache1

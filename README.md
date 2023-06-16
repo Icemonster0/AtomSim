@@ -9,6 +9,7 @@ AtomSim is a soft body simulation using atoms connected with springs in an [octe
 ###### OS
 
 Runs on Linux and probably Mac but I'm doubtful about Windows because of weird command line syntax.
+Some versions of g++ might have problems, no guarantees.
 
 ###### Packages
 

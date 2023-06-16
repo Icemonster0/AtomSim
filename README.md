@@ -24,6 +24,8 @@ AtomSim uses `imagemagick` and `gnuplot`.
 
 All settings are available in `src/settings.h`. They should all be self-explanatory and there are short descriptions for some of them.
 
+If you have any outputs enabled, make shure that the output directories exist and are **empty**!
+
 ###### Compiling
 
 Run `compile.sh` or its equivalent on your OS to generate the executable.
